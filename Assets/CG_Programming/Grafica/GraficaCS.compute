@@ -1,0 +1,133 @@
+﻿// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel PintarGrafica
+#pragma kernel LimpiaImagen
+#pragma kernel PintarEjes
+#pragma kernel PintarCuadricula
+
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+float4 color;
+float4 colorDeFondo;
+float4 colorDeEje;
+float4 colorDeCuadricula;
+
+float2 escala;
+float2 desplazamiento;
+float2 resolucion;
+
+//Texture2D<float4> Source;
+RWStructuredBuffer<float2> Puntos;
+RWTexture2D<float4> Result;
+
+[numthreads(1,1,1)]
+void PintarGrafica (uint3 id : SV_DispatchThreadID)
+{
+	float2 puntoInicio = Puntos[id.y];
+	float2 puntoFin = Puntos[id.y + 1];
+
+	//Escala
+	puntoInicio *= escala;
+	puntoFin *= escala;
+
+	//Desplazamiento
+	puntoInicio += desplazamiento;
+	puntoFin += desplazamiento;
+	//Centrado en altura
+	puntoInicio.y += resolucion.y/2;
+	puntoFin.y += resolucion.y/2;
+
+
+
+
+	int xDif = puntoFin.x - puntoInicio.x;
+	int yDif = puntoFin.y - puntoInicio.y;
+
+	int signoX = sign(xDif);
+	int signoY = sign(yDif);
+
+	int maxL = max(abs(xDif), abs(yDif));
+	int minL = min(abs(xDif), abs(yDif));
+
+	int recorrido = maxL;
+
+	
+	if(abs(xDif) > abs(yDif)){
+		for(int i = 0; i < recorrido; i++){
+			float2 posPixel = 0;
+			posPixel.x = puntoInicio.x + signoX * i;
+			posPixel.y = puntoInicio.y + signoY * (float)i / ((float)maxL / (float)minL);
+			Result[posPixel.xy] = color;
+			//Grueso de la linea
+			Result[posPixel.xy + uint2(1,0)] = color;
+			Result[posPixel.xy + uint2(1,1)] = color;
+		}
+	}else{
+		for(int i = 0; i < recorrido; i++){
+			float2 posPixel = 0;
+			posPixel.x = puntoInicio.x + signoX * (float)i / ((float)maxL / (float)minL);
+			posPixel.y = puntoInicio.y + signoY * i;
+			Result[posPixel.xy] = color;
+			//Grueso de la linea
+			Result[posPixel.xy + uint2(1,0)] = color;
+			Result[posPixel.xy + uint2(1,1)] = color;
+		}
+	}
+	
+
+	// Result[puntoInicio.xy] = float4(0, 0, 1, 1);
+	// Result[puntoFin.xy] = float4(0, 0, 1, 1);
+
+}
+
+[numthreads(32, 32, 1)]
+void LimpiaImagen(uint3 id : SV_DispatchThreadID)
+{
+	Result[id.xy] = colorDeFondo;
+}
+
+
+[numthreads(1, 1, 1)]
+void PintarEjes(uint3 id : SV_DispatchThreadID)
+{
+	//Centrado
+	float2 eje = float2(0, resolucion.y/2 + desplazamiento.y);
+
+	//X
+	for(int i = 0; i < resolucion.x; i++){
+		float2 posEje = 0;
+		posEje.x = eje.x + i;
+		posEje.y = eje.y;
+
+		Result[posEje.xy] = colorDeEje;
+	}
+
+	//Y
+	eje = float2(desplazamiento.x, 0);
+	for(i = 0; i < resolucion.y; i++){
+		float2 posEje = 0;
+		posEje.x = eje.x;
+		posEje.y = eje.y + i;
+
+		Result[posEje.xy] = colorDeEje;
+	}
+}
+
+[numthreads(1, 1, 1)]
+void PintarCuadricula(uint3 id : SV_DispatchThreadID)
+{
+
+
+	//XY
+	/*
+	float2 posEje = 0;
+	for(int i = 0; i < resolucion.x; i++){
+		posEje.x = eje.x + i;
+		for(int j = 0; j < resolucion.y; j++){
+			posEje.y = eje.y + id.y * 130;
+
+			Result[posEje.xy] = colorDeCuadricula;
+		}
+	}
+	*/
+
+}
